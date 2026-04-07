@@ -1,0 +1,203 @@
+@use '@angular/material' as mat;
+
+// Dark theme (default — like Linear)
+$dark-theme: mat.define-theme((
+  color: (
+    theme-type: dark,
+    primary: mat.$violet-palette,
+    tertiary: mat.$blue-palette,
+  ),
+  density: (scale: -1),
+));
+
+// Light theme
+$light-theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$violet-palette,
+    tertiary: mat.$blue-palette,
+  ),
+  density: (scale: -1),
+));
+
+// Default: dark
+html {
+  color-scheme: dark;
+  @include mat.all-component-themes($dark-theme);
+}
+
+// Light override — only override colors to avoid duplication
+html.light-theme {
+  color-scheme: light;
+  @include mat.all-component-colors($light-theme);
+}
+
+// Custom CSS variables for Linear-style design
+:root {
+  --sidebar-bg: #1e1e1e;
+  --sidebar-hover: #2a2a2a;
+  --sidebar-text: #999999;
+  --sidebar-text-active: #ffffff;
+  --sidebar-border: #333333;
+  --surface-bg: #121212;
+  --surface-raised: #1e1e1e;
+  --surface-border: #333333;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --text-tertiary: #6b6b6b;
+  --accent-primary: #7c5cfc;
+  --accent-hover: #6a4ce0;
+  --status-backlog: #666666;
+  --status-todo: #999999;
+  --status-in-progress: #2196f3;
+  --status-ready-to-test: #f5a623;
+  --status-testing: #ff9800;
+  --status-done: #4caf50;
+  --status-cancelled: #777777;
+  --priority-urgent: #f44336;
+  --priority-high: #ff9800;
+  --priority-medium: #ffd600;
+  --priority-low: #64b5f6;
+  --priority-none: #666666;
+  --row-hover: #252525;
+}
+
+html.light-theme {
+  --sidebar-bg: #f7f7f9;
+  --sidebar-hover: #ebebef;
+  --sidebar-text: #5a5a6e;
+  --sidebar-text-active: #111118;
+  --sidebar-border: #e0e0e6;
+  --surface-bg: #ffffff;
+  --surface-raised: #f7f7f9;
+  --surface-border: #e0e0e6;
+  --text-primary: #111118;
+  --text-secondary: #5a5a6e;
+  --text-tertiary: #8888a0;
+  --accent-primary: #6c4ce0;
+  --accent-hover: #5a3cc8;
+  --row-hover: #f3f3f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--surface-bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-border);
+  border-radius: 3px;
+
+  &:hover {
+    background: var(--text-tertiary);
+  }
+}
+
+// Angular Material overrides for Linear feel
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-color: var(--surface-raised) !important;
+}
+
+// Dialog sizing
+.mat-mdc-dialog-content {
+  max-height: unset !important;
+  overflow-x: hidden !important;
+
+  // Remove subscript wrapper — use margin for spacing instead
+  .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  // Spacing between stacked fields
+  .mat-mdc-form-field {
+    margin-bottom: 12px;
+  }
+
+  // Form rows with side-by-side fields
+  .form-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .mat-mdc-form-field {
+      flex: 1;
+      margin-bottom: 0;
+    }
+  }
+}
+
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: var(--surface-raised) !important;
+  --mdc-snackbar-supporting-text-color: var(--text-primary) !important;
+}
+
+.mat-mdc-menu-panel {
+  --mat-menu-container-color: var(--surface-raised) !important;
+}
+
+// Fix dropdown option alignment — icons + text
+.mat-mdc-option {
+  .mdc-list-item__primary-text {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px;
+  }
+}
+
+// Fix mat-select panel background
+.mat-mdc-select-panel {
+  background: var(--surface-raised) !important;
+}
+
+// Datepicker panel background
+.mat-datepicker-content {
+  background: var(--surface-raised) !important;
+}
+
+// Fix mat-form-field outline border overlap
+.mat-mdc-form-field {
+  .mat-mdc-text-field-wrapper {
+    vertical-align: middle;
+  }
+}
+
+// Fix color input inside mat-form-field
+input[type="color"] {
+  height: 28px;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+
+  &::-webkit-color-swatch-wrapper {
+    padding: 2px;
+  }
+
+  &::-webkit-color-swatch {
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+  }
+}
