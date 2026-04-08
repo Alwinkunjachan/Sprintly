@@ -1,7 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of } from 'rxjs';
+import { Observable, tap, of } from 'rxjs';
 import { Member } from '../models/member.model';
 import {
   LoginRequest,
@@ -20,6 +20,9 @@ export class AuthService {
   private isAuthenticatedSignal = signal<boolean>(false);
   private isLoadingSignal = signal<boolean>(true);
 
+  /** Resolves when the initial auth check is complete */
+  readonly authReady: Promise<void>;
+
   readonly currentMember = this.currentMemberSignal.asReadonly();
   readonly isAuthenticated = this.isAuthenticatedSignal.asReadonly();
   readonly isLoading = this.isLoadingSignal.asReadonly();
@@ -33,7 +36,7 @@ export class AuthService {
   });
 
   constructor(private http: HttpClient, private router: Router) {
-    this.loadStoredAuth();
+    this.authReady = this.loadStoredAuth();
   }
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
@@ -49,13 +52,12 @@ export class AuthService {
   }
 
   refreshToken(): Observable<TokenResponse> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      this.logout();
+    const token = this.getRefreshToken();
+    if (!token) {
       return of({ accessToken: '', refreshToken: '' });
     }
     return this.http
-      .post<TokenResponse>(`${API_URL}/refresh`, { refreshToken })
+      .post<TokenResponse>(`${API_URL}/refresh`, { refreshToken: token })
       .pipe(
         tap((tokens) => this.storeTokens(tokens.accessToken, tokens.refreshToken))
       );
@@ -114,25 +116,69 @@ export class AuthService {
     this.isAuthenticatedSignal.set(true);
   }
 
-  private loadStoredAuth(): void {
-    const token = this.getAccessToken();
-    if (token) {
-      this.isAuthenticatedSignal.set(true);
-      this.getProfile().pipe(
-        catchError(() => {
-          this.clearTokens();
-          this.isAuthenticatedSignal.set(false);
-          this.isLoadingSignal.set(false);
-          return of(null);
-        })
-      ).subscribe((member) => {
-        if (member) {
-          this.currentMemberSignal.set(member);
-        }
-        this.isLoadingSignal.set(false);
-      });
-    } else {
+  /**
+   * On startup, try to restore auth from stored tokens.
+   * Makes direct HTTP calls with explicit headers to avoid interceptor loops.
+   */
+  private async loadStoredAuth(): Promise<void> {
+    let accessToken = this.getAccessToken();
+    const refreshTokenVal = this.getRefreshToken();
+
+    if (!accessToken) {
       this.isLoadingSignal.set(false);
+      return;
+    }
+
+    this.isAuthenticatedSignal.set(true);
+
+    try {
+      // Try fetching profile with current access token (direct call, no interceptor issues)
+      let member = await this.fetchProfileDirect(accessToken);
+
+      if (!member && refreshTokenVal) {
+        // Access token expired — try refresh
+        const tokens = await fetch(`${API_URL}/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: refreshTokenVal }),
+        });
+
+        if (tokens.ok) {
+          const data = await tokens.json();
+          this.storeTokens(data.accessToken, data.refreshToken);
+          accessToken = data.accessToken;
+          member = await this.fetchProfileDirect(accessToken!);
+        }
+      }
+
+      if (member) {
+        this.currentMemberSignal.set(member);
+      } else {
+        // Both tokens invalid
+        this.clearTokens();
+        this.isAuthenticatedSignal.set(false);
+      }
+    } catch {
+      this.clearTokens();
+      this.currentMemberSignal.set(null);
+      this.isAuthenticatedSignal.set(false);
+    } finally {
+      this.isLoadingSignal.set(false);
+    }
+  }
+
+  /** Fetch profile using native fetch to bypass Angular interceptor completely */
+  private async fetchProfileDirect(token: string): Promise<Member | null> {
+    try {
+      const res = await fetch(`${API_URL}/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      return null;
+    } catch {
+      return null;
     }
   }
 }

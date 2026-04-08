@@ -3,12 +3,10 @@ import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
-let isRefreshing = false;
-
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
 
-  // Don't add token to auth endpoints
+  // Skip auth endpoints
   if (
     req.url.includes('/auth/login') ||
     req.url.includes('/auth/register') ||
@@ -17,22 +15,20 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  const accessToken = authService.getAccessToken();
-  let authReq = req;
-  if (accessToken) {
-    authReq = req.clone({
-      setHeaders: { Authorization: `Bearer ${accessToken}` },
-    });
-  }
+  // Attach token
+  const token = authService.getAccessToken();
+  const authReq = token
+    ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+    : req;
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !isRefreshing) {
-        isRefreshing = true;
+      // Only attempt refresh on 401, and only if we have a refresh token
+      if (error.status === 401 && authService.getRefreshToken()) {
         return authService.refreshToken().pipe(
           switchMap((tokens) => {
-            isRefreshing = false;
             if (!tokens.accessToken) {
+              authService.logout();
               return throwError(() => error);
             }
             const retryReq = req.clone({
@@ -40,12 +36,16 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             });
             return next(retryReq);
           }),
-          catchError((refreshError) => {
-            isRefreshing = false;
+          catchError(() => {
             authService.logout();
-            return throwError(() => refreshError);
+            return throwError(() => error);
           })
         );
+      }
+
+      // No refresh token or non-401 error
+      if (error.status === 401) {
+        authService.logout();
       }
       return throwError(() => error);
     })
