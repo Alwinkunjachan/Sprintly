@@ -40,17 +40,17 @@ import { NotificationService } from '../../../core/services/notification.service
         <mat-tab-group [(selectedIndex)]="selectedTab" animationDuration="200ms">
           <mat-tab label="Sign In">
             <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="auth-form">
-              <mat-form-field appearance="outline">
+              <mat-form-field appearance="outline" floatLabel="always">
                 <mat-label>Email</mat-label>
-                <input matInput formControlName="email" type="email" placeholder="you{'@'}example.com" />
+                <input matInput formControlName="email" type="email" placeholder="Enter your email" />
                 @if (loginForm.get('email')?.hasError('email') && loginForm.get('email')?.touched) {
                   <mat-error>Enter a valid email</mat-error>
                 }
               </mat-form-field>
 
-              <mat-form-field appearance="outline">
+              <mat-form-field appearance="outline" floatLabel="always">
                 <mat-label>Password</mat-label>
-                <input matInput formControlName="password" [type]="hideLoginPassword() ? 'password' : 'text'" />
+                <input matInput formControlName="password" [type]="hideLoginPassword() ? 'password' : 'text'" placeholder="Enter your password" />
                 <button mat-icon-button matSuffix type="button" (click)="hideLoginPassword.set(!hideLoginPassword())">
                   <mat-icon>{{ hideLoginPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
                 </button>
@@ -69,22 +69,22 @@ import { NotificationService } from '../../../core/services/notification.service
 
           <mat-tab label="Create Account">
             <form [formGroup]="registerForm" (ngSubmit)="onRegister()" class="auth-form">
-              <mat-form-field appearance="outline">
+              <mat-form-field appearance="outline" floatLabel="always">
                 <mat-label>Name</mat-label>
-                <input matInput formControlName="name" placeholder="Your name" />
+                <input matInput formControlName="name" placeholder="Enter your full name" />
               </mat-form-field>
 
-              <mat-form-field appearance="outline">
+              <mat-form-field appearance="outline" floatLabel="always">
                 <mat-label>Email</mat-label>
-                <input matInput formControlName="email" type="email" placeholder="you{'@'}example.com" />
+                <input matInput formControlName="email" type="email" placeholder="Enter your email" />
                 @if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
                   <mat-error>Enter a valid email</mat-error>
                 }
               </mat-form-field>
 
-              <mat-form-field appearance="outline">
+              <mat-form-field appearance="outline" floatLabel="always">
                 <mat-label>Password</mat-label>
-                <input matInput formControlName="password" [type]="hideRegisterPassword() ? 'password' : 'text'" />
+                <input matInput formControlName="password" [type]="hideRegisterPassword() ? 'password' : 'text'" placeholder="Minimum 8 characters" />
                 <button mat-icon-button matSuffix type="button" (click)="hideRegisterPassword.set(!hideRegisterPassword())">
                   <mat-icon>{{ hideRegisterPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
                 </button>
@@ -93,9 +93,9 @@ import { NotificationService } from '../../../core/services/notification.service
                 }
               </mat-form-field>
 
-              <mat-form-field appearance="outline">
+              <mat-form-field appearance="outline" floatLabel="always">
                 <mat-label>Confirm Password</mat-label>
-                <input matInput formControlName="confirmPassword" [type]="hideRegisterPassword() ? 'password' : 'text'" />
+                <input matInput formControlName="confirmPassword" [type]="hideRegisterPassword() ? 'password' : 'text'" placeholder="Re-enter your password" />
                 @if (registerForm.get('confirmPassword')?.touched && registerForm.get('confirmPassword')?.value !== registerForm.get('password')?.value) {
                   <mat-error>Passwords do not match</mat-error>
                 }
@@ -154,6 +154,11 @@ import { NotificationService } from '../../../core/services/notification.service
       background: var(--sidebar-bg);
       border: 1px solid var(--surface-border);
       border-radius: 12px;
+
+      input::placeholder {
+        color: var(--text-secondary, #888);
+        opacity: 0.6;
+      }
     }
 
     .auth-header {
