@@ -9,7 +9,12 @@ The application follows a **client-server architecture** with a clear separation
 │   Angular Client    │  HTTP   │   Express API       │  SQL    │  PostgreSQL  │
 │   (Port 4200)       │ ──────> │   (Port 3000)       │ ──────> │  Database    │
 │                     │  JSON   │                     │         │              │
-└─────────────────────┘         └─────────────────────┘         └──────────────┘
+└─────────────────────┘         └──────────┬──────────┘         └──────────────┘
+                                           │ Cache
+                                    ┌──────┴──────┐
+                                    │    Redis    │
+                                    │  (Port 6379)│
+                                    └─────────────┘
 ```
 
 ## Design Principles
@@ -84,9 +89,9 @@ src/app/
 ### Layered Design
 
 ```
-Request → Helmet → Rate Limit → Routes → Middleware (authenticate + validate) → Controller → Service → Model → Database
+Request → Helmet → Rate Limit → Routes → Middleware (authenticate + validate) → Controller → Service → Cache (Redis) → Model → Database
                                                                                      ↓
-Response ← Controller ← Service ← Model ← Database
+Response ← Controller ← Service ← Cache ← Model ← Database
                 ↓
          Error Handler (if error)
 ```
@@ -98,8 +103,9 @@ Response ← Controller ← Service ← Model ← Database
 | Middleware   | JWT authentication, admin authorization, Zod validation, error handling  |
 | Controllers  | Parse request, call service, format response                             |
 | Services     | Business logic, transactions, analytics, data orchestration              |
+| Cache        | Redis cache-aside layer (check cache → query DB → cache result)          |
 | Models       | Sequelize model definitions and associations                             |
-| Config       | Database, environment (with production enforcement), Passport strategies |
+| Config       | Database, environment (with production enforcement), Passport, Redis     |
 
 ### Directory Structure
 
@@ -107,8 +113,9 @@ Response ← Controller ← Service ← Model ← Database
 src/
 ├── config/
 │   ├── database.ts        # Sequelize instance and connection
-│   ├── environment.ts     # Environment variable parsing (DB, JWT, Google, session)
-│   └── passport.ts        # Passport strategies (local + Google OAuth)
+│   ├── environment.ts     # Environment variable parsing (DB, JWT, Google, session, Redis)
+│   ├── passport.ts        # Passport strategies (local + Google OAuth)
+│   └── redis.ts           # Redis connection singleton (ioredis, lazyConnect)
 ├── controllers/
 │   ├── auth.controller.ts # Login, register, refresh, me, logout, Google callback
 │   ├── project.controller.ts
@@ -117,7 +124,7 @@ src/
 │   ├── label.controller.ts
 │   └── member.controller.ts
 ├── middleware/
-│   ├── authenticate.ts    # JWT Bearer token verification
+│   ├── authenticate.ts    # JWT Bearer token verification (with Redis-cached member lookup)
 │   ├── errorHandler.ts    # Global error handler
 │   └── validate.ts        # Zod validation middleware
 ├── models/
@@ -145,6 +152,7 @@ src/
 │   └── member.service.ts
 ├── utils/
 │   ├── api-error.ts       # Custom error class (400, 401, 404, 409, 500)
+│   ├── cache.ts           # Redis cache utility (get/set/del/invalidate/hashKey)
 │   └── jwt.ts             # JWT generation and verification helpers
 └── app.ts                 # Express app bootstrap (CORS, session, Passport)
 ```
@@ -161,6 +169,26 @@ A background job runs every 60 minutes (`setInterval`) to check for cycles whose
 1. The cycle status changes to `completed`
 2. All incomplete issues (not `done` or `cancelled`) are moved to `backlog` status
 3. The `cycleId` is removed from those issues
+
+### Pagination
+
+Issue and project list endpoints support server-side pagination via `page` and `pageSize` query parameters. When provided, the response format changes from a plain array to `{ data: [...], total: number, page: number, pageSize: number }`. When omitted, endpoints return plain arrays for backward compatibility (used by dropdowns, sidebar, etc.). Maximum 100 items per page enforced server-side.
+
+### Redis Caching
+
+The application uses a **cache-aside (lazy-loading)** pattern with Redis:
+
+1. **Read path:** Check Redis → if hit, return cached data; if miss, query PostgreSQL → cache result with TTL → return data
+2. **Write path:** Write to PostgreSQL → invalidate related cache keys → next read repopulates cache
+
+Key design decisions:
+- **Graceful degradation** — all cache operations no-op silently if Redis is unavailable
+- **Hash-based keys** for variable filter combinations (`hashKey()` in `utils/cache.ts`)
+- **SCAN-based invalidation** — non-blocking pattern deletion instead of `KEYS`
+- **TTLs:** 2min (issues), 5min (projects/cycles/auth), 10min (members/analytics), 1hr (labels)
+- **Auth middleware caching** — `authenticate` middleware caches member lookups (5min TTL) to eliminate per-request DB hits
+
+See [Redis Documentation](REDIS.md) for full details on cache keys, TTLs, and invalidation matrix.
 
 ### Global Labels
 

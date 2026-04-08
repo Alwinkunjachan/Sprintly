@@ -36,8 +36,10 @@ Returns server status. **Public** (no auth required).
 
 **Response:**
 ```json
-{ "status": "ok" }
+{ "status": "ok", "redis": "connected" }
 ```
+
+The `redis` field will be `"connected"` or `"unavailable"`. The API works without Redis (graceful degradation).
 
 ---
 
@@ -162,9 +164,15 @@ http://localhost:4200/auth/google/callback?accessToken=...&refreshToken=...
 
 ### `GET /api/v1/projects`
 
-List all projects with issue counts.
+List all projects with issue counts. Supports optional pagination.
 
-**Response `200`:**
+**Query Parameters:**
+| Parameter  | Type   | Description                                  |
+| ---------- | ------ | -------------------------------------------- |
+| `page`     | number | Page number (1-based). Enables pagination.   |
+| `pageSize` | number | Items per page (max 100). Required with `page`. |
+
+**Response `200` (without pagination):** Array of project objects
 ```json
 [
   {
@@ -178,6 +186,16 @@ List all projects with issue counts.
     "updatedAt": "2026-01-15T10:30:00.000Z"
   }
 ]
+```
+
+**Response `200` (with pagination):** Paginated envelope
+```json
+{
+  "data": [ { "id": "uuid", "name": "My Project", ... } ],
+  "total": 25,
+  "page": 1,
+  "pageSize": 12
+}
 ```
 
 ### `GET /api/v1/projects/:id`
@@ -231,7 +249,7 @@ Delete a project.
 
 ### `GET /api/v1/issues`
 
-List issues with optional filters.
+List issues with optional filters and pagination.
 
 **Query Parameters:**
 | Parameter    | Type   | Description                                    |
@@ -245,8 +263,10 @@ List issues with optional filters.
 | `search`     | string | Search in title and description                |
 | `sort`       | string | Sort field (default: `createdAt`)              |
 | `order`      | string | Sort order: `ASC` or `DESC` (default: `DESC`)  |
+| `page`       | number | Page number (1-based). Enables pagination.     |
+| `pageSize`   | number | Items per page (max 100). Required with `page`. |
 
-**Response `200`:**
+**Response `200` (without pagination):** Array of issue objects
 ```json
 [
   {
@@ -267,6 +287,16 @@ List issues with optional filters.
     "updatedAt": "2026-01-15T10:30:00.000Z"
   }
 ]
+```
+
+**Response `200` (with pagination):** Paginated envelope
+```json
+{
+  "data": [ { "id": "uuid", "identifier": "BACK-5", ... } ],
+  "total": 42,
+  "page": 1,
+  "pageSize": 25
+}
 ```
 
 ### `GET /api/v1/issues/:id`

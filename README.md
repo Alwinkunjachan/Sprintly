@@ -11,6 +11,7 @@ A full-stack issue tracking application inspired by [Linear](https://linear.app)
 | Auth       | Passport.js, JWT (access + refresh tokens), bcryptjs         |
 | OAuth      | Google OAuth 2.0 via passport-google-oauth20                 |
 | Security   | Helmet.js, express-rate-limit, login attempt limiting        |
+| Caching    | Redis (ioredis) with cache-aside pattern (optional)          |
 | Database   | PostgreSQL                                                   |
 | Tooling    | Angular CLI, Nodemon, ts-node                                |
 
@@ -27,6 +28,8 @@ A full-stack issue tracking application inspired by [Linear](https://linear.app)
 - **Cycles** - Time-boxed sprints with automatic completion and issue rollback
 - **Labels** - Global color-coded labels for categorization
 - **Members** - Assign issues to team members
+- **Pagination** - Server-side pagination on issue and project list endpoints with `MatPaginator` UI
+- **Redis Caching** - Optional Redis caching layer to reduce database load with automatic invalidation on writes
 - **Filtering** - Filter issues by status, priority, assignee, cycle, and label
 - **Idle Timeout** - Auto-logout after 10 minutes of inactivity with session extend prompt
 - **Theming** - Dark and light mode with persistent preference
@@ -37,6 +40,7 @@ A full-stack issue tracking application inspired by [Linear](https://linear.app)
 
 - Node.js >= 18
 - PostgreSQL >= 14
+- Redis >= 6 (optional — app works without it)
 - Angular CLI (`npm install -g @angular/cli`)
 
 ### Setup
@@ -104,6 +108,7 @@ Ticket_raising_application/
 | [API Reference](docs/API.md)         | REST API endpoints and payloads      |
 | [Database Schema](docs/DATABASE.md)  | Models, associations, and ERD        |
 | [Frontend Guide](docs/FRONTEND.md)   | Angular architecture and components  |
+| [Redis Caching](docs/REDIS.md)          | Cache architecture and monitoring    |
 | [Setup Guide](docs/SETUP.md)         | Installation and configuration       |
 
 ## Scripts

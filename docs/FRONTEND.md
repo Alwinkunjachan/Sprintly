@@ -23,7 +23,7 @@ src/
 │   │   ├── models/
 │   │   │   ├── auth.model.ts     # LoginRequest, RegisterRequest, AuthResponse, TokenResponse
 │   │   │   ├── project.model.ts  # Project, CreateProjectDto
-│   │   │   ├── issue.model.ts    # Issue, CreateIssueDto, IssueStatus, IssuePriority, IssueFilters
+│   │   │   ├── issue.model.ts    # Issue, CreateIssueDto, IssueStatus, IssuePriority, IssueFilters, PaginatedResponse
 │   │   │   ├── cycle.model.ts    # Cycle, CreateCycleDto
 │   │   │   ├── label.model.ts    # Label, CreateLabelDto
 │   │   │   └── member.model.ts   # Member (incl. provider field)
@@ -242,14 +242,14 @@ Behavior:
 
 ### Issues
 
-- **IssueListComponent** - Displays a filterable, sortable list of issues. Supports filtering by status, priority, assignee, cycle, and label. Used standalone and embedded within ProjectDetailComponent and CycleDetailComponent.
+- **IssueListComponent** - Displays a filterable, sortable, **paginated** list of issues. Supports filtering by status, priority, assignee, cycle, and label. Uses `MatPaginator` with 10/25/50 page size options. Filters reset pagination to page 1.
 - **IssueDetailComponent** - Full issue editor with inline-editable fields for status, priority, assignee, cycle, and labels. Supports delete with confirmation.
 - **IssueRowComponent** - Single issue row showing identifier, title, status icon, priority icon, and assignee avatar.
 - **IssueCreateDialogComponent** - Material dialog for creating issues with project, title, status, priority, assignee, and label selection.
 
 ### Projects
 
-- **ProjectListComponent** - Grid of project cards showing name, identifier, issue count, and description.
+- **ProjectListComponent** - **Paginated** grid of project cards showing name, identifier, issue count, and description. Uses `MatPaginator` with 12/24/48 page size options.
 - **ProjectDetailComponent** - Tabbed view with issues tab and cycles tab for a single project.
 - **ProjectCreateDialogComponent** - Dialog for creating projects with name, identifier, and description.
 

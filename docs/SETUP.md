@@ -7,6 +7,7 @@
 | Node.js        | >= 18    | JavaScript runtime         |
 | npm            | >= 9     | Package manager            |
 | PostgreSQL     | >= 14    | Database                   |
+| Redis          | >= 6     | Caching (optional)         |
 | Angular CLI    | >= 19    | Frontend build tooling     |
 
 ### Install Angular CLI globally
@@ -95,6 +96,9 @@ SESSION_SECRET=your-session-secret-here
 
 # Client URL
 CLIENT_URL=http://localhost:4200
+
+# Redis (optional — app degrades gracefully without it)
+REDIS_URL=redis://localhost:6379
 ```
 
 ### 4. Run the database migration
@@ -115,8 +119,10 @@ The API starts at `http://localhost:3000`. Verify with:
 
 ```bash
 curl http://localhost:3000/health
-# { "status": "ok" }
+# { "status": "ok", "redis": "connected" }
 ```
+
+If Redis is not running, the response will show `"redis": "unavailable"` but the API works normally (queries go directly to PostgreSQL).
 
 **Default admin credentials:**
 - `alwin.kunjachan@zeronorth.com` / `password123`
@@ -252,8 +258,32 @@ Google SSO is optional. The app works with local email/password auth only. To en
 | `GOOGLE_CALLBACK_URL`   | `http://localhost:3000/api/v1/auth/google/callback` | OAuth callback URL |
 | `SESSION_SECRET`        | `dev-session-secret`           | Express session secret                  |
 | `CLIENT_URL`            | `http://localhost:4200`        | Angular app URL (for CORS and redirects)|
+| `REDIS_URL`             | `redis://localhost:6379`       | Redis connection URL (optional)         |
 | `ADMIN_EMAIL`           | `alwin.kunjachan@zeronorth.com`| Admin email for migration seed          |
 | `ADMIN_NAME`            | `Alwin Kunjachan`              | Admin name for migration seed           |
 | `ADMIN_PASSWORD`        | `password123`                  | Admin password for migration seed       |
 
 **Production note:** In production (`NODE_ENV=production`), the server will crash on startup if `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, or `DB_PASSWORD` are not set.
+
+## Redis Setup (Optional)
+
+Redis provides caching to reduce database load. The application works fully without Redis — all cache operations gracefully degrade to direct PostgreSQL queries.
+
+**macOS:**
+```bash
+brew install redis
+brew services start redis
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt install redis-server
+sudo systemctl start redis
+```
+
+**Docker:**
+```bash
+docker run -d -p 6379:6379 redis
+```
+
+See [Redis Documentation](REDIS.md) for monitoring, cache key details, and troubleshooting.

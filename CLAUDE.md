@@ -14,6 +14,7 @@ Sprintly — a full-stack issue tracking application inspired by Linear. Manages
 - **Backend:** Express 4, TypeScript 5.7, Sequelize 6 (ORM), Zod (validation)
 - **Auth:** Passport.js (passport-local + passport-google-oauth20), JWT (access + refresh tokens), bcryptjs
 - **Security:** Helmet.js (security headers), express-rate-limit, login attempt limiting (5 attempts, 30-min auto-unlock)
+- **Caching:** Redis (ioredis) with cache-aside pattern, graceful degradation when unavailable
 - **Database:** PostgreSQL (`linear_clone`)
 - **Tooling:** Angular CLI, Nodemon, ts-node
 
@@ -28,15 +29,15 @@ Sprintly — a full-stack issue tracking application inspired by Linear. Manages
 │       └── shared/      # Reusable components, pipes, dialogs (idle-timeout, confirm)
 ├── server/              # Express API
 │   └── src/
-│       ├── config/      # database.ts, environment.ts, passport.ts
+│       ├── config/      # database.ts, environment.ts, passport.ts, redis.ts
 │       ├── controllers/ # auth, analytics, project, issue, cycle, label, member
 │       ├── middleware/   # authenticate.ts, admin.ts, validate.ts, error-handler.ts
 │       ├── models/      # Sequelize models (Project, Issue, Cycle, Member, Label, IssueLabel)
 │       ├── routes/      # Route definitions (auth routes public, analytics admin-only, rest require JWT)
 │       ├── services/    # Business logic layer (incl. analytics.service.ts)
-│       └── utils/       # api-error.ts, jwt.ts
+│       └── utils/       # api-error.ts, jwt.ts, cache.ts
 │   └── scripts/         # migrate.ts (database setup script)
-└── docs/                # ARCHITECTURE.md, API.md, DATABASE.md, FRONTEND.md, SETUP.md
+└── docs/                # ARCHITECTURE.md, API.md, DATABASE.md, FRONTEND.md, SETUP.md, REDIS.md
 ```
 
 ## Common Commands
@@ -65,13 +66,14 @@ Server environment lives in `server/.env` (see `.env.example` at root). Key vari
 - `SESSION_SECRET` — Express session secret (required in production)
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — Google OAuth (optional; leave empty to disable)
 - `CLIENT_URL` — Angular app URL for CORS and OAuth redirects (default: `http://localhost:4200`)
+- `REDIS_URL` — Redis connection URL (optional; default: `redis://localhost:6379`; app degrades gracefully without it)
 
 Migration script also supports: `ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_PASSWORD` (for overriding default admin seed).
 
 ## Architecture Patterns
 
 ### Backend
-- **Layered:** Routes → Middleware (helmet + rate-limit + authenticate + validate) → Controllers → Services → Models
+- **Layered:** Routes → Middleware (helmet + rate-limit + authenticate + validate) → Controllers → Services → Cache (Redis) → Models
 - **Security middleware:** `helmet()` for headers, global rate limit (100/15min), auth-specific rate limit (10/15min)
 - **Auth flow:** `/api/v1/auth/*` routes are public; all other `/api/v1/*` routes are protected by global `authenticate` middleware in `routes/index.ts`
 - **Admin routes:** `requireAdmin` middleware on `/analytics/dashboard`, `/members/users`, `/members/:id/toggle-block`
@@ -80,6 +82,8 @@ Migration script also supports: `ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_PASSWORD` (f
 - **Error handling:** Custom `ApiError` class (400, 401, 404, 409, 500) caught by `errorHandler` middleware
 - **Member model:** Has `defaultScope` excluding `passwordHash`; use `Member.scope('withPassword')` when verifying passwords
 - **Database setup:** Via `npm run db:setup` migration script (no sequelize.sync on startup)
+- **Caching:** Redis cache-aside pattern via `server/src/utils/cache.ts`. Read endpoints check cache first; write endpoints invalidate related keys. Graceful degradation — all cache ops no-op if Redis is unavailable. Key pattern: `sprintly:{entity}:{identifier}`. TTLs: 2min (issues), 5min (projects/cycles/auth member), 10min (members/analytics), 1hr (labels).
+- **Pagination:** Issue and project list endpoints support `page`/`pageSize` query params. When present, return `{ data, total, page, pageSize }` instead of plain arrays. Max 100 per page. Frontend uses `MatPaginator`.
 - **Production enforcement:** Server crashes on startup if `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, or `DB_PASSWORD` are missing
 
 ### Frontend
