@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { Project, CreateProjectDto } from '../../../core/models/project.model';
+import { PaginatedResponse } from '../../../core/models/issue.model';
 
 @Injectable({ providedIn: 'root' })
 export class ProjectsService {
@@ -9,6 +10,13 @@ export class ProjectsService {
 
   getAll(): Observable<Project[]> {
     return this.api.get<Project[]>('/projects');
+  }
+
+  getAllPaginated(page: number, pageSize: number): Observable<PaginatedResponse<Project>> {
+    return this.api.get<PaginatedResponse<Project>>('/projects', {
+      page: String(page),
+      pageSize: String(pageSize),
+    });
   }
 
   getById(id: string): Observable<Project> {

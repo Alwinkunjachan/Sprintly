@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ProjectCreateDialogComponent } from '../project-create-dialog/project-create-dialog.component';
@@ -13,7 +14,7 @@ import { Project } from '../../../core/models/project.model';
 @Component({
   selector: 'app-project-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, EmptyStateComponent],
+  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatPaginatorModule, EmptyStateComponent],
   template: `
     <div class="project-list-page">
       <div class="page-header">
@@ -46,11 +47,22 @@ import { Project } from '../../../core/models/project.model';
             description="Create your first project to start tracking issues." />
         }
       </div>
+
+      <mat-paginator
+        [length]="totalProjects()"
+        [pageSize]="pageSize"
+        [pageIndex]="pageIndex"
+        [pageSizeOptions]="[12, 24, 48]"
+        (page)="onPageChange($event)"
+        showFirstLastButtons />
     </div>
   `,
   styles: [`
     .project-list-page {
       padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
 
     .page-header {
@@ -72,6 +84,15 @@ import { Project } from '../../../core/models/project.model';
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 12px;
+      flex: 1;
+
+      app-empty-state {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+      }
     }
 
     .project-card {
@@ -134,10 +155,18 @@ import { Project } from '../../../core/models/project.model';
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
+
+    mat-paginator {
+      border-top: 1px solid var(--surface-border);
+      background: transparent;
+    }
   `]
 })
 export class ProjectListComponent implements OnInit {
   projects = signal<Project[]>([]);
+  totalProjects = signal(0);
+  pageIndex = 0;
+  pageSize = 12;
 
   constructor(
     private projectsService: ProjectsService,
@@ -150,10 +179,19 @@ export class ProjectListComponent implements OnInit {
   }
 
   loadProjects() {
-    this.projectsService.getAll().subscribe({
-      next: (projects) => this.projects.set(projects),
+    this.projectsService.getAllPaginated(this.pageIndex + 1, this.pageSize).subscribe({
+      next: (res) => {
+        this.projects.set(res.data);
+        this.totalProjects.set(res.total);
+      },
       error: () => this.notification.error('Failed to load projects'),
     });
+  }
+
+  onPageChange(event: PageEvent) {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.loadProjects();
   }
 
   openCreateDialog() {

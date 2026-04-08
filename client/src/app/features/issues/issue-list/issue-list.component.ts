@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 import { IssueRowComponent } from '../issue-row/issue-row.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
@@ -23,7 +24,7 @@ import { ProjectsService } from '../../projects/services/projects.service';
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatIconModule, MatButtonModule,
-    MatSelectModule, MatFormFieldModule, MatInputModule,
+    MatSelectModule, MatFormFieldModule, MatInputModule, MatPaginatorModule,
     IssueRowComponent, EmptyStateComponent,
   ],
   template: `
@@ -41,12 +42,11 @@ import { ProjectsService } from '../../projects/services/projects.service';
       <div class="filters-bar">
         <mat-form-field appearance="outline" class="filter-field search-field">
           <mat-icon matPrefix>search</mat-icon>
-          <input matInput placeholder="Search" [(ngModel)]="filters.search" (ngModelChange)="loadIssues()">
+          <input matInput placeholder="Search" [(ngModel)]="filters.search" (ngModelChange)="onFilterChange()">
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Project</mat-label>
-          <mat-select [(ngModel)]="filters.projectId" (selectionChange)="loadIssues()">
+          <mat-select [(ngModel)]="filters.projectId" (selectionChange)="onFilterChange()" placeholder="Project">
             <mat-option value="">All</mat-option>
             @for (project of projects(); track project.id) {
               <mat-option [value]="project.id">{{ project.identifier }} - {{ project.name }}</mat-option>
@@ -55,8 +55,7 @@ import { ProjectsService } from '../../projects/services/projects.service';
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Status</mat-label>
-          <mat-select [(ngModel)]="filters.status" (selectionChange)="loadIssues()">
+          <mat-select [(ngModel)]="filters.status" (selectionChange)="onFilterChange()" placeholder="Status">
             <mat-option value="">All</mat-option>
             @for (s of statuses; track s.value) {
               <mat-option [value]="s.value">{{ s.label }}</mat-option>
@@ -65,8 +64,7 @@ import { ProjectsService } from '../../projects/services/projects.service';
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Priority</mat-label>
-          <mat-select [(ngModel)]="filters.priority" (selectionChange)="loadIssues()">
+          <mat-select [(ngModel)]="filters.priority" (selectionChange)="onFilterChange()" placeholder="Priority">
             <mat-option value="">All</mat-option>
             @for (p of priorities; track p.value) {
               <mat-option [value]="p.value">{{ p.label }}</mat-option>
@@ -75,8 +73,7 @@ import { ProjectsService } from '../../projects/services/projects.service';
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="filter-field">
-          <mat-label>Assignee</mat-label>
-          <mat-select [(ngModel)]="filters.assigneeId" (selectionChange)="loadIssues()">
+          <mat-select [(ngModel)]="filters.assigneeId" (selectionChange)="onFilterChange()" placeholder="Assignee">
             <mat-option value="">All</mat-option>
             @for (member of members(); track member.id) {
               <mat-option [value]="member.id">{{ member.name }}</mat-option>
@@ -98,6 +95,14 @@ import { ProjectsService } from '../../projects/services/projects.service';
             description="Create your first issue to get started." />
         }
       </div>
+
+      <mat-paginator
+        [length]="totalIssues()"
+        [pageSize]="pageSize"
+        [pageIndex]="pageIndex"
+        [pageSizeOptions]="[10, 25, 50]"
+        (page)="onPageChange($event)"
+        showFirstLastButtons />
     </div>
   `,
   styles: [`
@@ -154,16 +159,24 @@ import { ProjectsService } from '../../projects/services/projects.service';
       flex: 1;
       overflow: auto;
     }
+
+    mat-paginator {
+      border-top: 1px solid var(--surface-border);
+      background: transparent;
+    }
   `]
 })
 export class IssueListComponent implements OnInit {
   issues = signal<Issue[]>([]);
+  totalIssues = signal(0);
   members = signal<Member[]>([]);
   projects = signal<Project[]>([]);
   statuses = ISSUE_STATUSES;
   priorities = ISSUE_PRIORITIES;
 
   filters: IssueFilters = {};
+  pageIndex = 0;
+  pageSize = 25;
 
   constructor(
     private issuesService: IssuesService,
@@ -180,10 +193,29 @@ export class IssueListComponent implements OnInit {
   }
 
   loadIssues() {
-    this.issuesService.getAll(this.filters).subscribe({
-      next: (issues) => this.issues.set(issues),
+    const paginatedFilters: IssueFilters = {
+      ...this.filters,
+      page: String(this.pageIndex + 1),
+      pageSize: String(this.pageSize),
+    };
+    this.issuesService.getAllPaginated(paginatedFilters).subscribe({
+      next: (res) => {
+        this.issues.set(res.data);
+        this.totalIssues.set(res.total);
+      },
       error: () => this.notification.error('Failed to load issues'),
     });
+  }
+
+  onFilterChange() {
+    this.pageIndex = 0;
+    this.loadIssues();
+  }
+
+  onPageChange(event: PageEvent) {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.loadIssues();
   }
 
   onStatusChange(event: { id: string; status: IssueStatus }) {

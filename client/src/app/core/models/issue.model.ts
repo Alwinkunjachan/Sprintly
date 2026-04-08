@@ -44,6 +44,15 @@ export interface IssueFilters {
   search?: string;
   sort?: string;
   order?: 'ASC' | 'DESC';
+  page?: string;
+  pageSize?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export const ISSUE_STATUSES: { value: IssueStatus; label: string }[] = [

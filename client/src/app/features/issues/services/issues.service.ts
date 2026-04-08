@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
-import { Issue, CreateIssueDto, IssueFilters } from '../../../core/models/issue.model';
+import { Issue, CreateIssueDto, IssueFilters, PaginatedResponse } from '../../../core/models/issue.model';
 
 @Injectable({ providedIn: 'root' })
 export class IssuesService {
@@ -9,6 +9,10 @@ export class IssuesService {
 
   getAll(filters?: IssueFilters): Observable<Issue[]> {
     return this.api.get<Issue[]>('/issues', filters as any);
+  }
+
+  getAllPaginated(filters?: IssueFilters): Observable<PaginatedResponse<Issue>> {
+    return this.api.get<PaginatedResponse<Issue>>('/issues', filters as any);
   }
 
   getById(id: string): Observable<Issue> {
