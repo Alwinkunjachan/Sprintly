@@ -16,20 +16,17 @@ import { CreateProjectDto } from '../../../core/models/project.model';
     <mat-dialog-content>
       <div class="form-row">
         <mat-form-field appearance="outline" class="field-name">
-          <mat-label>Project Name</mat-label>
-          <input matInput [(ngModel)]="form.name" placeholder="Enter project name" autofocus>
+          <input matInput [(ngModel)]="form.name" placeholder="Project Name" autofocus>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="field-id">
-          <mat-label>Identifier</mat-label>
-          <input matInput [(ngModel)]="form.identifier" placeholder="2-5 characters" maxlength="5"
+          <input matInput [(ngModel)]="form.identifier" placeholder="Identifier (2-5 chars)" maxlength="5"
                  (input)="form.identifier = form.identifier.toUpperCase()">
         </mat-form-field>
       </div>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Description</mat-label>
-        <textarea matInput [(ngModel)]="form.description" rows="3" placeholder="Add a description"></textarea>
+        <textarea matInput [(ngModel)]="form.description" rows="3" placeholder="Description"></textarea>
       </mat-form-field>
     </mat-dialog-content>
 

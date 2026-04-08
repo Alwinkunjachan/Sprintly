@@ -202,6 +202,15 @@ input[type="color"] {
   }
 }
 
+// Global form field styling — placeholder only, no floating label animation
+.mat-mdc-form-field {
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-secondary, #888) !important;
+    opacity: 0.6 !important;
+  }
+}
+
 // Idle timeout dialog panel
 .idle-timeout-panel {
   .mat-mdc-dialog-container {

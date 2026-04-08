@@ -24,13 +24,11 @@ import { CreateCycleDto } from '../../../core/models/cycle.model';
     <h2 mat-dialog-title>Create Cycle</h2>
     <mat-dialog-content>
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Cycle Name</mat-label>
-        <input matInput [(ngModel)]="form.name" placeholder="Enter cycle name" autofocus>
+        <input matInput [(ngModel)]="form.name" placeholder="Cycle Name" autofocus>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Project</mat-label>
-        <mat-select [(ngModel)]="form.projectId" [disabled]="!!data?.projectId">
+        <mat-select [(ngModel)]="form.projectId" [disabled]="!!data?.projectId" placeholder="Project">
           @for (project of projects(); track project.id) {
             <mat-option [value]="project.id">{{ project.identifier }} - {{ project.name }}</mat-option>
           }
@@ -39,23 +37,20 @@ import { CreateCycleDto } from '../../../core/models/cycle.model';
 
       <div class="form-row">
         <mat-form-field appearance="outline">
-          <mat-label>Start Date</mat-label>
-          <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate">
+          <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate" placeholder="Start Date">
           <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
           <mat-datepicker #startPicker></mat-datepicker>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>End Date</mat-label>
-          <input matInput [matDatepicker]="endPicker" [(ngModel)]="endDate">
+          <input matInput [matDatepicker]="endPicker" [(ngModel)]="endDate" placeholder="End Date">
           <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
           <mat-datepicker #endPicker></mat-datepicker>
         </mat-form-field>
       </div>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Description</mat-label>
-        <textarea matInput [(ngModel)]="form.description" rows="2" placeholder="Add a description"></textarea>
+        <textarea matInput [(ngModel)]="form.description" rows="2" placeholder="Description"></textarea>
       </mat-form-field>
     </mat-dialog-content>
 
