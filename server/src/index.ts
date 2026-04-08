@@ -14,14 +14,16 @@ async function bootstrap() {
 
     // Seed default members if none exist
     const { Member } = await import('./models');
+    const bcrypt = await import('bcryptjs');
     const memberCount = await Member.count();
     if (memberCount === 0) {
+      const defaultPasswordHash = await bcrypt.hash('password123', 12);
       await Member.bulkCreate([
-        { name: 'Alwin Kunjachan', email: 'alwin@example.com' },
-        { name: 'Jane Smith', email: 'jane@example.com' },
-        { name: 'Bob Johnson', email: 'bob@example.com' },
+        { name: 'Alwin Kunjachan', email: 'alwin@example.com', passwordHash: defaultPasswordHash, provider: 'local' },
+        { name: 'Jane Smith', email: 'jane@example.com', passwordHash: defaultPasswordHash, provider: 'local' },
+        { name: 'Bob Johnson', email: 'bob@example.com', passwordHash: defaultPasswordHash, provider: 'local' },
       ]);
-      console.log('Default members seeded.');
+      console.log('Default members seeded (password: password123).');
     }
 
     // Check for expired cycles on startup
