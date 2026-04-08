@@ -28,6 +28,24 @@ export class MemberController {
       next(error);
     }
   }
+
+  async findNonAdminUsers(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const members = await memberService.findNonAdminUsers();
+      res.json(members);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async toggleBlock(req: Request, res: Response, next: NextFunction) {
+    try {
+      const member = await memberService.toggleBlock(req.params.id as string);
+      res.json(member);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const memberController = new MemberController();

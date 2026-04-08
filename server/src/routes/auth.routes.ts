@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import passport from '../config/passport';
 import { authController } from '../controllers/auth.controller';
 import { validate } from '../middleware/validate';
@@ -7,6 +8,15 @@ import { authenticate } from '../middleware/authenticate';
 import { env } from '../config/environment';
 
 const router = Router();
+
+// Strict rate limit for auth endpoints — 10 requests per 15 minutes per IP
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { message: 'Too many attempts, please try again later.', statusCode: 429 } },
+});
 
 const registerSchema = z.object({
   name: z.string().min(1).max(255),
@@ -23,9 +33,9 @@ const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
-// Public routes
-router.post('/register', validate(registerSchema), authController.register);
-router.post('/login', validate(loginSchema), authController.login);
+// Public routes (rate limited)
+router.post('/register', authLimiter, validate(registerSchema), authController.register);
+router.post('/login', authLimiter, validate(loginSchema), authController.login);
 router.post('/refresh', validate(refreshSchema), authController.refresh);
 
 // Protected routes

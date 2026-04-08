@@ -5,6 +5,9 @@ import bcrypt from 'bcryptjs';
 import { Member } from '../models';
 import { env } from './environment';
 
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+
 // Local Strategy (email + password)
 passport.use(
   new LocalStrategy(
@@ -15,13 +18,62 @@ passport.use(
         if (!member) {
           return done(null, false, { message: 'Invalid email or password' });
         }
+
+        // Check if blocked
+        if (member.blocked) {
+          // Auto-unlock after 30 min for attempt-based locks
+          if (
+            member.blockedReason === 'max_attempts' &&
+            member.blockedAt &&
+            Date.now() - new Date(member.blockedAt).getTime() > LOCKOUT_DURATION_MS
+          ) {
+            await member.update({
+              blocked: false,
+              failedLoginAttempts: 0,
+              blockedReason: null,
+              blockedAt: null,
+            });
+          } else if (member.blockedReason === 'max_attempts') {
+            return done(null, false, {
+              message: 'Your account has been locked due to too many failed attempts. Contact an administrator.',
+            });
+          } else {
+            return done(null, false, {
+              message: 'Your account has been blocked. Contact an administrator.',
+            });
+          }
+        }
+
         if (!member.passwordHash) {
           return done(null, false, { message: 'This account uses Google sign-in' });
         }
+
         const isMatch = await bcrypt.compare(password, member.passwordHash);
         if (!isMatch) {
-          return done(null, false, { message: 'Invalid email or password' });
+          const attempts = member.failedLoginAttempts + 1;
+          if (attempts >= MAX_LOGIN_ATTEMPTS) {
+            await member.update({
+              failedLoginAttempts: attempts,
+              blocked: true,
+              blockedReason: 'max_attempts',
+              blockedAt: new Date(),
+            });
+            return done(null, false, {
+              message: 'Your account has been locked due to too many failed attempts. Contact an administrator.',
+            });
+          } else {
+            await member.update({ failedLoginAttempts: attempts });
+            return done(null, false, {
+              message: `Invalid email or password. ${MAX_LOGIN_ATTEMPTS - attempts} attempt(s) remaining.`,
+            });
+          }
         }
+
+        // Successful login — reset attempts
+        if (member.failedLoginAttempts > 0) {
+          await member.update({ failedLoginAttempts: 0 });
+        }
+
         return done(null, member);
       } catch (err) {
         return done(err);
@@ -70,6 +122,10 @@ if (env.google.clientId && env.google.clientSecret) {
                 avatarUrl: profile.photos?.[0]?.value || null,
               });
             }
+          }
+
+          if (member.blocked) {
+            return done(null, false, { message: 'Your account has been blocked. Contact an administrator.' });
           }
 
           return done(null, member);

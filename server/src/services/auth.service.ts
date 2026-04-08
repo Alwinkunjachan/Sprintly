@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { Op } from 'sequelize';
 import { Member, MemberAttributes } from '../models/member.model';
 import { ApiError } from '../utils/api-error';
 import {
@@ -25,9 +26,16 @@ class AuthService {
   }
 
   async register(data: { name: string; email: string; password: string }) {
-    const existing = await Member.findOne({ where: { email: data.email } });
-    if (existing) {
+    const existingEmail = await Member.findOne({ where: { email: data.email } });
+    if (existingEmail) {
       throw ApiError.conflict('Email already registered');
+    }
+
+    const existingName = await Member.findOne({
+      where: { name: { [Op.iLike]: data.name.trim() } },
+    });
+    if (existingName) {
+      throw ApiError.conflict('A user already exists with the same first name and last name');
     }
 
     const passwordHash = await bcrypt.hash(data.password, 12);

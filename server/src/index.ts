@@ -8,22 +8,17 @@ async function bootstrap() {
     await sequelize.authenticate();
     console.log('Database connected successfully.');
 
-    // Sync models (creates tables if they don't exist)
-    await sequelize.sync({ alter: env.nodeEnv === 'development' });
-    console.log('Database synced.');
-
-    // Seed default members if none exist
+    // Seed Alwin as admin if no members exist
     const { Member } = await import('./models');
     const bcrypt = await import('bcryptjs');
+
     const memberCount = await Member.count();
     if (memberCount === 0) {
       const defaultPasswordHash = await bcrypt.hash('password123', 12);
-      await Member.bulkCreate([
-        { name: 'Alwin Kunjachan', email: 'alwin@example.com', passwordHash: defaultPasswordHash, provider: 'local' },
-        { name: 'Jane Smith', email: 'jane@example.com', passwordHash: defaultPasswordHash, provider: 'local' },
-        { name: 'Bob Johnson', email: 'bob@example.com', passwordHash: defaultPasswordHash, provider: 'local' },
-      ]);
-      console.log('Default members seeded (password: password123).');
+      await Member.create({
+        name: 'Alwin Kunjachan', email: 'alwin.kunjachan@zeronorth.com', passwordHash: defaultPasswordHash, provider: 'local', role: 'admin',
+      });
+      console.log('Default admin member seeded (password: password123).');
     }
 
     // Check for expired cycles on startup

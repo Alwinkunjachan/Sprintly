@@ -9,12 +9,17 @@ export interface MemberAttributes {
   passwordHash: string | null;
   googleId: string | null;
   provider: string;
+  role: string;
+  blocked: boolean;
+  failedLoginAttempts: number;
+  blockedReason: string | null;
+  blockedAt: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 interface MemberCreationAttributes
-  extends Optional<MemberAttributes, 'id' | 'avatarUrl' | 'passwordHash' | 'googleId' | 'provider'> {}
+  extends Optional<MemberAttributes, 'id' | 'avatarUrl' | 'passwordHash' | 'googleId' | 'provider' | 'role' | 'blocked' | 'failedLoginAttempts' | 'blockedReason' | 'blockedAt'> {}
 
 export class Member
   extends Model<MemberAttributes, MemberCreationAttributes>
@@ -27,6 +32,11 @@ export class Member
   declare passwordHash: string | null;
   declare googleId: string | null;
   declare provider: string;
+  declare role: string;
+  declare blocked: boolean;
+  declare failedLoginAttempts: number;
+  declare blockedReason: string | null;
+  declare blockedAt: Date | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -64,6 +74,29 @@ Member.init(
       type: DataTypes.STRING(50),
       allowNull: false,
       defaultValue: 'local',
+    },
+    role: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'user',
+    },
+    blocked: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    failedLoginAttempts: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    blockedReason: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+    },
+    blockedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
   },
   {
