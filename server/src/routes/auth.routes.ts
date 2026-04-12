@@ -9,10 +9,10 @@ import { env } from '../config/environment';
 
 const router = Router();
 
-// Strict rate limit for auth endpoints — 10 requests per 15 minutes per IP
+// Strict rate limit for auth endpoints — relaxed in development
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: env.nodeEnv === 'production' ? 10 : 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: { message: 'Too many attempts, please try again later.', statusCode: 429 } },
