@@ -312,7 +312,7 @@ import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
     </div>
   `,
   styles: [`
-    .settings-page { padding: 32px 40px; max-width: 900px; }
+    .settings-page { padding: 32px 40px; }
 
     .settings-header {
       margin-bottom: 24px;
