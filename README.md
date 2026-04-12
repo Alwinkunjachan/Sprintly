@@ -1,135 +1,41 @@
-# Sprintly - Ticket Raising Application
+# Sprintly
 
-A full-stack issue tracking application inspired by [Linear](https://linear.app), built with Angular 19 and Express.js. Manage projects, issues, cycles (sprints), and labels through a modern, responsive UI powered by Angular Material.
+A full-stack issue tracking application inspired by [Linear](https://linear.app). Manage projects, issues, cycles (sprints), labels, and team members with a modern UI.
 
 ## Tech Stack
 
-| Layer      | Technology                                                  |
-| ---------- | ----------------------------------------------------------- |
-| Frontend   | Angular 19, Angular Material 19, TypeScript 5.7             |
-| Backend    | Express 4, TypeScript 5.7, Sequelize 6, Zod                 |
-| Auth       | Passport.js, JWT (access + refresh tokens), bcryptjs         |
-| OAuth      | Google OAuth 2.0 via passport-google-oauth20                 |
-| Security   | Helmet.js, express-rate-limit, login attempt limiting        |
-| Caching    | Redis (ioredis) with cache-aside pattern (optional)          |
-| Database   | PostgreSQL                                                   |
-| Tooling    | Angular CLI, Nodemon, ts-node                                |
-
-## Features
-
-- **Authentication** - Local login (email/password) and Google SSO with JWT-based session management
-- **Role-based Access** - Admin sees all issues; normal users see only their assigned issues
-- **Admin Dashboard** - Analytics with project stats, issue breakdowns, top assignees, overdue cycles, and timeline
-- **User Management** - Admin can block/unblock users from the settings page
-- **Login Security** - 5 failed attempts locks the account; auto-unlocks after 30 minutes
-- **Rate Limiting** - API-level and auth-endpoint rate limiting via express-rate-limit
-- **Projects** - Create and manage projects with unique identifiers (e.g., `PROJ`)
-- **Issues** - Full lifecycle management with auto-generated keys (`PROJ-1`, `PROJ-2`)
-- **Cycles** - Time-boxed sprints with automatic completion and issue rollback
-- **Labels** - Global color-coded labels for categorization
-- **Members** - Assign issues to team members
-- **Pagination** - Server-side pagination on issue and project list endpoints with `MatPaginator` UI
-- **Redis Caching** - Optional Redis caching layer to reduce database load with automatic invalidation on writes
-- **Filtering** - Filter issues by status, priority, assignee, cycle, and label
-- **Idle Timeout** - Auto-logout after 10 minutes of inactivity with session extend prompt
-- **Theming** - Dark and light mode with persistent preference
+**Frontend:** Angular 19, Angular Material, TypeScript | **Backend:** Express, Sequelize, PostgreSQL | **Auth:** JWT + Google SSO | **Cache:** Redis (optional)
 
 ## Quick Start
 
-### Prerequisites
-
-- Node.js >= 18
-- PostgreSQL >= 14
-- Redis >= 6 (optional — app works without it)
-- Angular CLI (`npm install -g @angular/cli`)
-
-### Setup
+### Local Development
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd Ticket_raising_application
-
-# Configure environment
-cp .env.example server/.env
-# Edit server/.env with your PostgreSQL credentials and JWT secrets
-
-# Install dependencies
-cd server && npm install
-cd ../client && npm install
-
-# Start the backend (runs on port 3000)
-cd ../server && npm run dev
-
-# Start the frontend (runs on port 4200)
-cd ../client && ng serve
+cp .env.example server/.env    # Configure DB credentials & JWT secrets
+cd server && npm install && npm run db:setup && npm run dev
+cd client && npm install && ng serve
 ```
 
-Open [http://localhost:4200](http://localhost:4200) in your browser. You will be redirected to the login page.
+Open http://localhost:4200 — Default admin: `alwin.kunjachan@zeronorth.com` / `password123`
 
-**Default admin credentials** (seeded via `npm run db:setup`):
-- Email: `alwin.kunjachan@zeronorth.com` / Password: `password123`
+### Docker
 
-## Project Structure
-
+```bash
+cp .env.docker .env            # Configure secrets in .env
+docker compose up -d --build
+docker compose run --rm migrate
 ```
-Ticket_raising_application/
-├── client/                  # Angular frontend
-│   └── src/
-│       └── app/
-│           ├── core/        # Services, models, interceptors, guards
-│           ├── features/    # Feature modules (auth, issues, projects, cycles, labels, settings)
-│           ├── layout/      # Layout shell (sidebar, toolbar)
-│           └── shared/      # Reusable components and pipes
-├── server/                  # Express backend
-│   └── src/
-│       ├── config/          # Database, environment, and Passport config
-│       ├── controllers/     # Route handlers
-│       ├── middleware/       # Auth, error handling, and validation
-│       ├── models/          # Sequelize models
-│       ├── routes/          # API route definitions
-│       ├── services/        # Business logic layer
-│       ├── utils/           # JWT helpers, ApiError
-│       └── validators/      # Zod validation schemas
-├── docs/                    # Documentation
-│   ├── ARCHITECTURE.md      # System architecture
-│   ├── API.md               # REST API reference
-│   ├── DATABASE.md          # Database schema
-│   ├── FRONTEND.md          # Frontend architecture
-│   └── SETUP.md             # Detailed setup guide
-└── .env.example             # Environment template
-```
+
+Open http://localhost
 
 ## Documentation
 
-| Document                          | Description                          |
-| --------------------------------- | ------------------------------------ |
+| Document | Description |
+|----------|-------------|
 | [Architecture](docs/ARCHITECTURE.md) | System design and component overview |
-| [API Reference](docs/API.md)         | REST API endpoints and payloads      |
-| [Database Schema](docs/DATABASE.md)  | Models, associations, and ERD        |
-| [Frontend Guide](docs/FRONTEND.md)   | Angular architecture and components  |
-| [Redis Caching](docs/REDIS.md)          | Cache architecture and monitoring    |
-| [Setup Guide](docs/SETUP.md)         | Installation and configuration       |
-
-## Scripts
-
-### Server
-
-| Command          | Description                       |
-| ---------------- | --------------------------------- |
-| `npm run dev`      | Start dev server with hot reload        |
-| `npm run build`    | Compile TypeScript to JavaScript        |
-| `npm start`        | Run compiled production build           |
-| `npm run db:setup` | Create database, tables, and seed data  |
-
-### Client
-
-| Command          | Description                       |
-| ---------------- | --------------------------------- |
-| `ng serve`       | Start dev server on port 4200     |
-| `ng build`       | Production build                  |
-| `ng test`        | Run unit tests via Karma          |
-
-## License
-
-This project is for educational and demonstration purposes.
+| [API Reference](docs/API.md) | REST API endpoints and payloads |
+| [Database Schema](docs/DATABASE.md) | Models, associations, and ERD |
+| [Frontend Guide](docs/FRONTEND.md) | Angular architecture and components |
+| [Redis Caching](docs/REDIS.md) | Cache architecture and monitoring |
+| [Setup Guide](docs/SETUP.md) | Installation and configuration |
+| [Docker Guide](docs/DOCKER.md) | Docker deployment and troubleshooting |
