@@ -43,11 +43,11 @@ psql -U postgres
 ```
 
 ```sql
-CREATE DATABASE linear_clone;
+CREATE DATABASE sprintly;
 \q
 ```
 
-The application auto-creates all tables on first startup via Sequelize `sync()`. No manual migrations are needed.
+Tables are created via the migration script (`npm run db:setup`), not via `sequelize.sync()`.
 
 ## Backend Setup
 
@@ -74,7 +74,7 @@ Edit `.env` with your credentials:
 ```env
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=linear_clone
+DB_NAME=sprintly
 DB_USER=postgres
 DB_PASSWORD=your_password_here
 PORT=3000
@@ -217,7 +217,7 @@ cd server && npm run db:setup
 
 Ensure your database user has proper privileges:
 ```sql
-GRANT ALL PRIVILEGES ON DATABASE linear_clone TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE sprintly TO postgres;
 ```
 
 ## Google OAuth Setup (Optional)
@@ -287,3 +287,19 @@ docker run -d -p 6379:6379 redis
 ```
 
 See [Redis Documentation](REDIS.md) for monitoring, cache key details, and troubleshooting.
+
+## Docker Deployment (Alternative)
+
+Instead of installing prerequisites locally, you can run the entire stack with Docker:
+
+```bash
+cp .env.docker .env            # Create env file from Docker template
+# Edit .env — set JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, SESSION_SECRET
+
+docker compose up -d --build   # Build and start all services
+docker compose run --rm migrate  # Create tables and seed data
+```
+
+Open `http://localhost` in your browser.
+
+See [Docker Guide](DOCKER.md) for full details, commands, and troubleshooting.

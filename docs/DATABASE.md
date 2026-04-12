@@ -2,7 +2,7 @@
 
 ## Overview
 
-The application uses **PostgreSQL** with **Sequelize 6** as the ORM. The database name is `linear_clone`. Tables are created via the migration script (`npm run db:setup`).
+The application uses **PostgreSQL** with **Sequelize 6** as the ORM. The database name is `sprintly`. Tables are created via the migration script (`npm run db:setup`).
 
 ## Entity Relationship Diagram
 
@@ -164,7 +164,7 @@ Configuration is loaded from environment variables (see `.env.example`):
 ```
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=linear_clone
+DB_NAME=sprintly
 DB_USER=postgres
 DB_PASSWORD=postgres
 ```
