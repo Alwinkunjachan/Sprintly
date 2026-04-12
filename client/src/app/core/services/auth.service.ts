@@ -9,8 +9,9 @@ import {
   AuthResponse,
   TokenResponse,
 } from '../models/auth.model';
+import { environment } from '../../../environments/environment';
 
-const API_URL = 'http://localhost:3000/api/v1/auth';
+const API_URL = `${environment.apiUrl}/auth`;
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
@@ -68,7 +69,7 @@ export class AuthService {
   }
 
   googleLogin(): void {
-    window.location.href = 'http://localhost:3000/api/v1/auth/google';
+    window.location.href = `${environment.apiUrl}/auth/google`;
   }
 
   handleGoogleCallback(accessToken: string, refreshToken: string): void {
