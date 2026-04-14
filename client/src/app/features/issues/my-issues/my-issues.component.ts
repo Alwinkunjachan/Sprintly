@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 import { IssueRowComponent } from '../issue-row/issue-row.component';
+import { IssueBoardComponent } from '../issue-board/issue-board.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { IssueCreateDialogComponent } from '../issue-create-dialog/issue-create-dialog.component';
 import { IssuesService } from '../services/issues.service';
@@ -22,18 +24,28 @@ import { ProjectsService } from '../../projects/services/projects.service';
   selector: 'app-my-issues',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatIconModule, MatButtonModule,
+    CommonModule, FormsModule, MatIconModule, MatButtonModule, MatButtonToggleModule,
     MatSelectModule, MatFormFieldModule, MatInputModule, MatPaginatorModule,
-    IssueRowComponent, EmptyStateComponent,
+    IssueRowComponent, IssueBoardComponent, EmptyStateComponent,
   ],
   template: `
     <div class="issue-list-page">
       <div class="page-header">
         <h1>My Issues</h1>
-        <button mat-flat-button color="primary" (click)="openCreateDialog()">
-          <mat-icon>add</mat-icon>
-          New Issue
-        </button>
+        <div class="header-actions">
+          <mat-button-toggle-group [value]="viewMode" (change)="onViewModeChange($event.value)" class="view-toggle" hideSingleSelectionIndicator>
+            <mat-button-toggle value="list" aria-label="List view">
+              <mat-icon>view_list</mat-icon>
+            </mat-button-toggle>
+            <mat-button-toggle value="board" aria-label="Board view">
+              <mat-icon>view_kanban</mat-icon>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+          <button mat-flat-button color="primary" (click)="openCreateDialog()">
+            <mat-icon>add</mat-icon>
+            New Issue
+          </button>
+        </div>
       </div>
 
       <div class="filters-bar">
@@ -51,14 +63,16 @@ import { ProjectsService } from '../../projects/services/projects.service';
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field">
-          <mat-select [(ngModel)]="filters.status" (selectionChange)="onFilterChange()" placeholder="Status">
-            <mat-option value="">All</mat-option>
-            @for (s of statuses; track s.value) {
-              <mat-option [value]="s.value">{{ s.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        @if (viewMode === 'list') {
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-select [(ngModel)]="filters.status" (selectionChange)="onFilterChange()" placeholder="Status">
+              <mat-option value="">All</mat-option>
+              @for (s of statuses; track s.value) {
+                <mat-option [value]="s.value">{{ s.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
 
         <mat-form-field appearance="outline" class="filter-field">
           <mat-select [(ngModel)]="filters.priority" (selectionChange)="onFilterChange()" placeholder="Priority">
@@ -70,26 +84,32 @@ import { ProjectsService } from '../../projects/services/projects.service';
         </mat-form-field>
       </div>
 
-      <div class="issue-list">
-        @for (issue of issues(); track issue.id) {
-          <app-issue-row
-            [issue]="issue"
-            (statusChange)="onStatusChange($event)" />
-        } @empty {
-          <app-empty-state
-            icon="check_circle_outline"
-            title="No issues assigned to you"
-            description="Issues assigned to you will appear here." />
-        }
-      </div>
+      @if (viewMode === 'list') {
+        <div class="issue-list">
+          @for (issue of issues(); track issue.id) {
+            <app-issue-row
+              [issue]="issue"
+              (statusChange)="onStatusChange($event)" />
+          } @empty {
+            <app-empty-state
+              icon="check_circle_outline"
+              title="No issues assigned to you"
+              description="Issues assigned to you will appear here." />
+          }
+        </div>
 
-      <mat-paginator
-        [length]="totalIssues()"
-        [pageSize]="pageSize"
-        [pageIndex]="pageIndex"
-        [pageSizeOptions]="[10, 25, 50]"
-        (page)="onPageChange($event)"
-        showFirstLastButtons />
+        <mat-paginator
+          [length]="totalIssues()"
+          [pageSize]="pageSize"
+          [pageIndex]="pageIndex"
+          [pageSizeOptions]="[10, 25, 50]"
+          (page)="onPageChange($event)"
+          showFirstLastButtons />
+      } @else {
+        <app-issue-board
+          [issues]="issues"
+          (statusChange)="onStatusChange($event)" />
+      }
     </div>
   `,
   styles: [`
@@ -110,6 +130,58 @@ import { ProjectsService } from '../../projects/services/projects.service';
         font-weight: 600;
         margin: 0;
         color: var(--text-primary);
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .view-toggle {
+      ::ng-deep {
+        .mat-button-toggle-group {
+          border: 1px solid var(--surface-border);
+          border-radius: 6px;
+        }
+
+        .mat-button-toggle {
+          background: transparent;
+          border: none;
+
+          .mat-button-toggle-button {
+            height: 32px;
+            width: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .mat-button-toggle-label-content {
+            padding: 0;
+            line-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            color: var(--text-tertiary);
+          }
+
+          &.mat-button-toggle-checked .mat-icon {
+            color: var(--accent-primary);
+          }
+        }
+
+        .mat-button-toggle + .mat-button-toggle {
+          border-left: 1px solid var(--surface-border);
+        }
       }
     }
 
@@ -160,6 +232,7 @@ export class MyIssuesComponent implements OnInit {
   statuses = ISSUE_STATUSES;
   priorities = ISSUE_PRIORITIES;
 
+  viewMode: 'list' | 'board' = 'list';
   filters: IssueFilters = {};
   pageIndex = 0;
   pageSize = 25;
@@ -182,8 +255,8 @@ export class MyIssuesComponent implements OnInit {
     const filtersWithAssignee: IssueFilters = {
       ...this.filters,
       assigneeId: member?.id || '',
-      page: String(this.pageIndex + 1),
-      pageSize: String(this.pageSize),
+      page: this.viewMode === 'board' ? '1' : String(this.pageIndex + 1),
+      pageSize: this.viewMode === 'board' ? '200' : String(this.pageSize),
     };
     this.issuesService.getAllPaginated(filtersWithAssignee).subscribe({
       next: (res) => {
@@ -192,6 +265,13 @@ export class MyIssuesComponent implements OnInit {
       },
       error: () => this.notification.error('Failed to load issues'),
     });
+  }
+
+  onViewModeChange(mode: 'list' | 'board') {
+    this.viewMode = mode;
+    this.filters.status = '';
+    this.pageIndex = 0;
+    this.loadIssues();
   }
 
   onFilterChange() {
@@ -208,10 +288,15 @@ export class MyIssuesComponent implements OnInit {
   onStatusChange(event: { id: string; status: IssueStatus }) {
     this.issuesService.update(event.id, { status: event.status }).subscribe({
       next: () => {
-        this.loadIssues();
+        if (this.viewMode === 'list') {
+          this.loadIssues();
+        }
         this.notification.success('Status updated');
       },
-      error: () => this.notification.error('Failed to update status'),
+      error: () => {
+        this.notification.error('Failed to update status');
+        this.loadIssues();
+      },
     });
   }
 

@@ -84,7 +84,9 @@ import { Project } from '../../../core/models/project.model';
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 12px;
+      align-content: start;
       flex: 1;
+      overflow: auto;
 
       app-empty-state {
         grid-column: 1 / -1;
