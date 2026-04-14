@@ -86,6 +86,49 @@ services:
       postgres:
         condition: service_healthy
 
+  # ---- Seed sample data ----
+  seed:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: builder
+    command: npx ts-node scripts/seed.ts
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-sprintly}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@sprintly.io}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-password123}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ---- Reset database (wipe + re-seed admin/labels) ----
+  reset:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: builder
+    command: npx ts-node scripts/reset.ts
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-sprintly}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      REDIS_URL: redis://redis:6379
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@sprintly.io}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-password123}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   # ---- Frontend (nginx) ----
   client:
     build:
