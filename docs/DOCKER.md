@@ -72,8 +72,8 @@ docker compose run --rm migrate
 Open **http://localhost** in your browser.
 
 Default admin credentials (from `.env`):
-- Email: `admin@sprintly.io`
-- Password: `password123`
+- Email: `alwinpkunjachan@gmail.com`
+- Password: `Alwin@123`
 
 ## Services
 
@@ -113,9 +113,9 @@ All variables are configured in the root `.env` file. See [.env.docker](../.env.
 | `GOOGLE_CLIENT_ID`     | *(empty)*                | Google OAuth client ID           |
 | `GOOGLE_CLIENT_SECRET` | *(empty)*                | Google OAuth client secret       |
 | `GOOGLE_CALLBACK_URL`  | `http://localhost/api/v1/auth/google/callback` | OAuth callback URL |
-| `ADMIN_EMAIL`          | `admin@sprintly.io`      | Default admin email              |
-| `ADMIN_NAME`           | `Admin`                  | Default admin display name       |
-| `ADMIN_PASSWORD`       | `password123`            | Default admin password           |
+| `ADMIN_EMAIL`          | `alwinpkunjachan@gmail.com`      | Default admin email              |
+| `ADMIN_NAME`           | `Alwin Kunjachan`                  | Default admin display name       |
+| `ADMIN_PASSWORD`       | `Alwin@123`            | Default admin password           |
 
 ## Common Commands
 

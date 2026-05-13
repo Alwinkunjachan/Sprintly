@@ -151,9 +151,11 @@ docker compose exec -T postgres psql -U postgres -d sprintly < backup.sql
 
 ## Default Credentials
 
-| Environment | Admin Email          | Password      |
-|-------------|----------------------|---------------|
-| Local dev   | alwin.kunjachan@zeronorth.com | password123 |
-| Docker      | admin@sprintly.io    | password123   |
+| Environment | Admin Email                       | Password      |
+|-------------|-----------------------------------|---------------|
+| Local dev   | `alwin.kunjachan@zeronorth.com`   | `password123` |
+| Docker      | `alwinpkunjachan@gmail.com`       | `Alwin@123`   |
+
+The local-dev defaults are seeded by `server/src/index.ts` on first run (when `members` is empty) and by `npm run db:setup`. The Docker defaults come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in the root `.env` (template: `.env.docker`) — change them before running `docker compose run --rm migrate`.
 
 Sample members (after `db:seed`): `alice@sprintly.io`, `bob@sprintly.io`, `charlie@sprintly.io`, `diana@sprintly.io` — all use `password123`.

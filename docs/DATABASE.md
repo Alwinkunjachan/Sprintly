@@ -23,7 +23,7 @@ The application uses **PostgreSQL** with **Sequelize 6** as the ORM. The databas
                  │           │                     │
                  │    ┌──────┴──────────────────────┘
                  │    │
-           ┌─────┴────┴───┐         ┌─────────────┐
+           ┌─────┴────┴───┐          ┌─────────────┐
            │    Issue      │         │    Label    │
            │───────────────│         │─────────────│
            │ id (PK)       │         │ id (PK)     │

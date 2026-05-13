@@ -1,0 +1,77 @@
+%% Sprintly — Google OAuth sign-in & token validation flow
+%% The client never cryptographically validates the JWT; it validates by
+%% exchanging it for GET /auth/me, which runs verifyAccessToken server-side.
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant LC as LoginComponent
+    participant AS as AuthService (client)
+    participant GCB as GoogleCallbackComponent
+    participant INT as authInterceptor
+    participant LS as localStorage
+    participant EX as Express<br/>/api/v1/auth
+    participant PP as Passport<br/>GoogleStrategy
+    participant G as Google OAuth 2.0
+    participant AuthCtrl as authController
+    participant AuthSvc as authService (server)
+    participant JWT as jwt.ts<br/>sign / verify
+    participant MW as authenticate<br/>middleware
+    participant DB as (PostgreSQL)<br/>members
+
+    U->>LC: Click "Sign in with Google"
+    LC->>AS: googleLogin()
+    AS->>EX: window.location = /auth/google
+    EX->>PP: passport.authenticate('google')
+    PP-->>G: redirect (scope=profile,email)
+    G-->>U: Consent screen
+    U->>G: Approve
+    G-->>EX: GET /auth/google/callback?code=...
+
+    EX->>PP: GoogleStrategy verify(code)
+    PP->>G: exchange code → profile
+    G-->>PP: { id, email, name, ... }
+    PP->>DB: find / link / create Member
+    DB-->>PP: Member row
+    PP-->>AuthCtrl: req.user = Member
+
+    AuthCtrl->>AuthSvc: login(member)
+    AuthSvc->>JWT: sign(accessToken, JWT_ACCESS_SECRET)
+    AuthSvc->>JWT: sign(refreshToken, JWT_REFRESH_SECRET)
+    JWT-->>AuthSvc: tokens
+    AuthSvc-->>AuthCtrl: { accessToken, refreshToken }
+    AuthCtrl-->>U: 302 redirect to<br/>CLIENT_URL/auth/google/callback<br/>?accessToken=...&refreshToken=...
+
+    U->>GCB: Browser loads callback route
+    Note over GCB: mat-spinner<br/>"Signing you in..."
+    GCB->>GCB: read queryParams<br/>accessToken + refreshToken
+
+    alt tokens missing
+        GCB->>GCB: router.navigate(['/auth/login'])
+    else tokens present
+        GCB->>AS: handleGoogleCallback(access, refresh)
+        AS->>LS: storeTokens(access, refresh)
+        AS->>AS: isAuthenticatedSignal.set(true)
+
+        AS->>INT: GET /api/v1/auth/me
+        INT->>LS: read access_token
+        INT->>EX: Authorization: Bearer <access>
+
+        EX->>MW: authenticate
+        MW->>JWT: verifyAccessToken(token)
+
+        alt signature / expiry invalid
+            JWT-->>MW: throws ApiError.unauthorized
+            MW-->>AS: 401
+            AS->>AS: logout() · clearTokens()
+            AS->>U: navigate /auth/login
+        else valid
+            JWT-->>MW: payload { sub, email }
+            MW->>DB: Member.findByPk(sub)
+            DB-->>MW: Member
+            MW-->>AuthCtrl: req.member set
+            AuthCtrl-->>AS: 200 Member profile
+            AS->>AS: currentMemberSignal.set(member)
+            AS->>U: router.navigate(['/'])
+        end
+    end

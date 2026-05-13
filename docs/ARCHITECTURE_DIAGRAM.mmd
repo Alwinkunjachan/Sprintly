@@ -1,0 +1,260 @@
+%% Sprintly — Complete Architecture & Data Flow
+%% Shows client (Angular 19) → HTTP → server (Express) → Models → PostgreSQL, with Redis cache and Google OAuth.
+
+flowchart LR
+    %% ============ CLIENT (Angular 19) ============
+    subgraph CLIENT["CLIENT — Angular 19 SPA (port 4200 / nginx :80)"]
+        direction TB
+
+        subgraph CL_FEAT["Feature Components (standalone, lazy-loaded)"]
+            direction LR
+            LoginC["LoginComponent"]
+            GoogleCbC["GoogleCallbackComponent"]
+            IssuesC["IssueList / IssueDetail / IssueBoard / MyIssues / CreateDialog"]
+            ProjectsC["ProjectList / ProjectDetail / CreateDialog"]
+            CyclesC["CycleList / CycleDetail / CreateDialog"]
+            LabelsC["LabelListComponent"]
+            SettingsC["SettingsComponent"]
+        end
+
+        subgraph CL_LAYOUT["Layout"]
+            LayoutComp["LayoutComponent"]
+            SidebarComp["SidebarComponent"]
+            ToolbarComp["ToolbarComponent"]
+        end
+
+        subgraph CL_GUARDS["Route Guards"]
+            authGuard["authGuard"]
+            guestGuard["guestGuard"]
+            adminGuard["adminGuard"]
+            roleGuard["roleRedirectGuard"]
+        end
+
+        subgraph CL_SVC["Core Services (signals, @Injectable root)"]
+            AuthSvc["AuthService<br/>tokens · currentMember · isAdmin"]
+            ApiSvc["ApiService (HttpClient wrapper)"]
+            FeatureSvcs["IssuesService · ProjectsService<br/>CyclesService · LabelsService<br/>MembersService · SettingsService"]
+            ThemeSvc["ThemeService"]
+            IdleSvc["IdleService (10min)"]
+            NotifSvc["NotificationService"]
+        end
+
+        AuthInterceptor["authInterceptor<br/>attaches Bearer · refreshes on 401"]
+        LocalStorage[("localStorage<br/>access + refresh tokens")]
+    end
+
+    %% ============ SERVER (Express) ============
+    subgraph SERVER["SERVER — Express + TypeScript (port 3000)"]
+        direction TB
+
+        EntryApp["index.ts / app.ts<br/>bootstrap · DB + Redis connect · seed admin"]
+
+        subgraph MW["Middleware Chain (in order)"]
+            direction LR
+            Helmet["helmet()"]
+            Cors["cors()"]
+            Body["body-parser"]
+            RateLimit["rate-limit<br/>100 / 15min"]
+            Session["express-session"]
+            PassportInit["passport.initialize + session"]
+            Authenticate["authenticate<br/>verify JWT · load member"]
+            Validate["validate (Zod)"]
+            RequireAdmin["requireAdmin"]
+            ErrorHandler["errorHandler (ApiError)"]
+        end
+
+        subgraph ROUTES["Routes  /api/v1/*"]
+            direction LR
+            AuthRoutes["authRoutes (public)"]
+            IssueRoutes["issueRoutes"]
+            ProjectRoutes["projectRoutes"]
+            CycleRoutes["cycleRoutes"]
+            LabelRoutes["labelRoutes"]
+            MemberRoutes["memberRoutes"]
+            AnalyticsRoutes["analyticsRoutes<br/>(admin)"]
+        end
+
+        subgraph CTRLS["Controllers"]
+            direction LR
+            AuthCtrl["authController"]
+            IssueCtrl["issueController"]
+            ProjectCtrl["projectController"]
+            CycleCtrl["cycleController"]
+            LabelCtrl["labelController"]
+            MemberCtrl["memberController"]
+            AnalyticsCtrl["analyticsController"]
+        end
+
+        subgraph SVCS["Services (singletons, business logic)"]
+            direction LR
+            AuthServerSvc["authService<br/>bcrypt · JWT"]
+            IssueSvc["issueService"]
+            ProjectSvc["projectService"]
+            CycleSvc["cycleService"]
+            LabelSvc["labelService"]
+            MemberSvc["memberService"]
+            AnalyticsSvc["analyticsService"]
+        end
+
+        subgraph CONFIG["Config & Utils"]
+            PassportCfg["passport.ts<br/>LocalStrategy + GoogleStrategy"]
+            JwtUtil["jwt.ts<br/>access + refresh sign/verify"]
+            CacheUtil["cache.ts<br/>get/set/del/invalidate · hashKey"]
+            ApiErr["ApiError (400/401/404/409/500)"]
+        end
+
+        subgraph MODELS["Sequelize Models (underscored)"]
+            direction LR
+            MProject["Project"]
+            MIssue["Issue"]
+            MCycle["Cycle"]
+            MMember["Member<br/>withPassword scope"]
+            MLabel["Label"]
+            MIssueLabel["IssueLabel (junction)"]
+        end
+
+        MProject ---|hasMany| MIssue
+        MProject ---|hasMany| MCycle
+        MCycle ---|hasMany| MIssue
+        MMember ---|hasMany assignee| MIssue
+        MIssue ---|belongsToMany| MLabel
+        MIssue -.through.- MIssueLabel
+        MLabel -.through.- MIssueLabel
+    end
+
+    %% ============ EXTERNAL / INFRA ============
+    subgraph INFRA["Infrastructure (docker-compose)"]
+        direction TB
+        Postgres[("PostgreSQL 16<br/>db: sprintly<br/>6 tables")]
+        Redis[("Redis 7<br/>sprintly:{entity}:{id}<br/>TTL 2m–1h · cache-aside")]
+        Nginx["nginx :80<br/>serves SPA · proxies /api/*"]
+    end
+
+    subgraph EXT["External"]
+        Google["Google OAuth 2.0"]
+    end
+
+    %% ============ USER ENTRY ============
+    User((User))
+
+    %% ============ CLIENT INTERNAL FLOW ============
+    User -->|browser| Nginx
+    Nginx -->|static| CL_FEAT
+    Nginx -->|/api/*| EntryApp
+
+    LoginC --> AuthSvc
+    GoogleCbC --> AuthSvc
+    IssuesC --> FeatureSvcs
+    ProjectsC --> FeatureSvcs
+    CyclesC --> FeatureSvcs
+    LabelsC --> FeatureSvcs
+    SettingsC --> FeatureSvcs
+
+    LayoutComp --- SidebarComp
+    LayoutComp --- ToolbarComp
+    LayoutComp -.hosts.-> CL_FEAT
+
+    authGuard --> AuthSvc
+    guestGuard --> AuthSvc
+    adminGuard --> AuthSvc
+    roleGuard --> AuthSvc
+
+    FeatureSvcs --> ApiSvc
+    AuthSvc --> ApiSvc
+    AuthSvc <--> LocalStorage
+    ApiSvc -->|HttpClient| AuthInterceptor
+    IdleSvc -.timeout.-> AuthSvc
+    ThemeSvc -.-> LayoutComp
+    NotifSvc -.-> CL_FEAT
+
+    %% ============ CLIENT → SERVER ============
+    AuthInterceptor ==HTTPS + Bearer JWT==> Helmet
+    Helmet --> Cors --> Body --> RateLimit --> Session --> PassportInit --> Authenticate --> Validate --> RequireAdmin
+    Authenticate -.reads.-> JwtUtil
+    Authenticate -.member cache.-> CacheUtil
+
+    %% Routes → Controllers
+    RequireAdmin --> AuthRoutes
+    RequireAdmin --> IssueRoutes
+    RequireAdmin --> ProjectRoutes
+    RequireAdmin --> CycleRoutes
+    RequireAdmin --> LabelRoutes
+    RequireAdmin --> MemberRoutes
+    RequireAdmin --> AnalyticsRoutes
+
+    AuthRoutes --> AuthCtrl
+    IssueRoutes --> IssueCtrl
+    ProjectRoutes --> ProjectCtrl
+    CycleRoutes --> CycleCtrl
+    LabelRoutes --> LabelCtrl
+    MemberRoutes --> MemberCtrl
+    AnalyticsRoutes --> AnalyticsCtrl
+
+    %% Controllers → Services
+    AuthCtrl --> AuthServerSvc
+    IssueCtrl --> IssueSvc
+    ProjectCtrl --> ProjectSvc
+    CycleCtrl --> CycleSvc
+    LabelCtrl --> LabelSvc
+    MemberCtrl --> MemberSvc
+    AnalyticsCtrl --> AnalyticsSvc
+
+    %% Auth specifics
+    AuthCtrl -->|passport.authenticate local/google| PassportCfg
+    PassportCfg --> MMember
+    AuthServerSvc --> JwtUtil
+    AuthServerSvc --> MMember
+
+    %% Services → Cache-aside → Models
+    IssueSvc -.1 check.-> CacheUtil
+    ProjectSvc -.1 check.-> CacheUtil
+    CycleSvc -.1 check.-> CacheUtil
+    LabelSvc -.1 check.-> CacheUtil
+    MemberSvc -.1 check.-> CacheUtil
+    AnalyticsSvc -.1 check.-> CacheUtil
+
+    IssueSvc -->|2 miss / write| MIssue
+    ProjectSvc --> MProject
+    CycleSvc --> MCycle
+    LabelSvc --> MLabel
+    MemberSvc --> MMember
+    AnalyticsSvc --> MIssue
+    AnalyticsSvc --> MProject
+    AnalyticsSvc --> MMember
+
+    IssueSvc -.3 set / invalidate on write.-> CacheUtil
+    ProjectSvc -.invalidate on write.-> CacheUtil
+    CycleSvc -.invalidate on write.-> CacheUtil
+    MemberSvc -.invalidate on write.-> CacheUtil
+
+    %% Error path
+    CTRLS -.throw ApiError.-> ErrorHandler
+    SVCS -.throw ApiError.-> ErrorHandler
+    ErrorHandler -.JSON error.-> AuthInterceptor
+
+    %% ============ SERVER → INFRA ============
+    MODELS ==Sequelize SQL==> Postgres
+    CacheUtil ==ioredis==> Redis
+
+    %% ============ OAUTH FLOW ============
+    LoginC -.click Google.-> AuthRoutes
+    AuthRoutes -->|/auth/google redirect| Google
+    Google -->|callback + code| AuthRoutes
+    AuthCtrl -.redirect with tokens.-> GoogleCbC
+
+    %% ============ TOKEN REFRESH ============
+    AuthInterceptor -.401 → POST /auth/refresh.-> AuthRoutes
+    AuthServerSvc -.new access + refresh.-> AuthInterceptor
+
+    %% ============ STYLING ============
+    classDef client fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef server fill:#fff3e0,stroke:#ef6c00,color:#e65100
+    classDef infra fill:#f3e5f5,stroke:#6a1b9a,color:#4a148c
+    classDef ext fill:#ffebee,stroke:#c62828,color:#b71c1c
+    classDef store fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+
+    class LoginC,GoogleCbC,IssuesC,ProjectsC,CyclesC,LabelsC,SettingsC,LayoutComp,SidebarComp,ToolbarComp,authGuard,guestGuard,adminGuard,roleGuard,AuthSvc,ApiSvc,FeatureSvcs,ThemeSvc,IdleSvc,NotifSvc,AuthInterceptor client
+    class EntryApp,Helmet,Cors,Body,RateLimit,Session,PassportInit,Authenticate,Validate,RequireAdmin,ErrorHandler,AuthRoutes,IssueRoutes,ProjectRoutes,CycleRoutes,LabelRoutes,MemberRoutes,AnalyticsRoutes,AuthCtrl,IssueCtrl,ProjectCtrl,CycleCtrl,LabelCtrl,MemberCtrl,AnalyticsCtrl,AuthServerSvc,IssueSvc,ProjectSvc,CycleSvc,LabelSvc,MemberSvc,AnalyticsSvc,PassportCfg,JwtUtil,CacheUtil,ApiErr,MProject,MIssue,MCycle,MMember,MLabel,MIssueLabel server
+    class Postgres,Redis,Nginx infra
+    class Google ext
+    class LocalStorage store

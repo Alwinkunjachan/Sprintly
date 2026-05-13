@@ -127,6 +127,8 @@ curl http://localhost:3000/health
 # { "status": "ok", "redis": "connected" }
 ```
 
+Note: `/health` is registered at the app root, not under `/api/v1/`.
+
 If Redis is not running, the response will show `"redis": "unavailable"` but the API works normally (queries go directly to PostgreSQL).
 
 **Default admin credentials:**
@@ -249,7 +251,7 @@ Google SSO is optional. The app works with local email/password auth only. To en
 | ----------------------- | ------------------------------ | --------------------------------------- |
 | `DB_HOST`               | `localhost`                    | PostgreSQL host                         |
 | `DB_PORT`               | `5432`                         | PostgreSQL port                         |
-| `DB_NAME`               | `linear_clone`                 | Database name                           |
+| `DB_NAME`               | `sprintly`                     | Database name                           |
 | `DB_USER`               | `postgres`                     | Database user                           |
 | `DB_PASSWORD`           | (empty)                        | Database password                       |
 | `PORT`                  | `3000`                         | Express server port                     |

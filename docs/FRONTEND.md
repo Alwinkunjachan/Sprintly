@@ -44,44 +44,42 @@ src/
 │   │       ├── admin.guard.ts          # Protects admin routes (settings)
 │   │       └── role-redirect.guard.ts  # Routes admin→/issues, user→/my-issues
 │   │
-│   ├── features/                 # Feature modules (lazy-loaded)
+│   ├── features/                       # Feature folders (lazy-loaded). Each owns its components + a services/ subfolder; components are flat (no nested components/ folder).
 │   │   ├── auth/
 │   │   │   ├── login/                  # Login/Register tabbed page
 │   │   │   ├── google-callback/        # Google OAuth redirect handler
 │   │   │   └── auth.routes.ts
 │   │   │
 │   │   ├── issues/
-│   │   │   ├── components/
-│   │   │   │   ├── issue-list/          # List view with board/list toggle
-│   │   │   │   ├── issue-board/         # Kanban board view (drag-and-drop)
-│   │   │   │   ├── issue-detail/
-│   │   │   │   ├── issue-row/
-│   │   │   │   └── issue-create-dialog/
+│   │   │   ├── issue-list/             # All-issues page (admin landing) — list/board toggle
+│   │   │   ├── issue-board/            # Kanban board view (native HTML5 drag-and-drop)
+│   │   │   ├── issue-detail/           # Full issue editor
+│   │   │   ├── issue-row/              # Row presentation used in list mode
+│   │   │   ├── issue-create-dialog/    # Material dialog
+│   │   │   ├── my-issues/              # Per-user page (non-admin landing) — same UI, no assignee filter
 │   │   │   ├── services/
-│   │   │   │   └── issues.service.ts
+│   │   │   │   ├── issues.service.ts
+│   │   │   │   └── members.service.ts
 │   │   │   └── issues.routes.ts
 │   │   │
 │   │   ├── projects/
-│   │   │   ├── components/
-│   │   │   │   ├── project-list/
-│   │   │   │   ├── project-detail/
-│   │   │   │   └── project-create-dialog/
+│   │   │   ├── project-list/
+│   │   │   ├── project-detail/
+│   │   │   ├── project-create-dialog/
 │   │   │   ├── services/
 │   │   │   │   └── projects.service.ts
 │   │   │   └── projects.routes.ts
 │   │   │
 │   │   ├── cycles/
-│   │   │   ├── components/
-│   │   │   │   ├── cycle-list/
-│   │   │   │   ├── cycle-detail/
-│   │   │   │   └── cycle-create-dialog/
+│   │   │   ├── cycle-list/
+│   │   │   ├── cycle-detail/
+│   │   │   ├── cycle-create-dialog/
 │   │   │   ├── services/
 │   │   │   │   └── cycles.service.ts
 │   │   │   └── cycles.routes.ts
 │   │   │
 │   │   ├── labels/
-│   │   │   ├── components/
-│   │   │   │   └── label-list/
+│   │   │   ├── label-list/
 │   │   │   ├── services/
 │   │   │   │   └── labels.service.ts
 │   │   │   └── labels.routes.ts
@@ -93,9 +91,9 @@ src/
 │   │       └── settings.routes.ts
 │   │
 │   ├── layout/                   # Application shell
-│   │   ├── layout/               # Main layout with sidebar + content + idle service
+│   │   ├── layout.component.ts   # Main layout with sidebar + content + idle service
 │   │   ├── sidebar/              # Navigation sidebar (role-aware: admin vs user)
-│   │   │   └── sidebar-nav-item/ # Reusable nav item
+│   │   ├── sidebar-nav-item/     # Reusable nav item (sibling of sidebar/, not nested)
 │   │   └── toolbar/              # Top toolbar (user menu, settings for admin, logout)
 │   │
 │   ├── shared/                   # Reusable UI elements
@@ -126,20 +124,22 @@ Feature routes are **lazy-loaded** using `loadChildren`. Auth routes are public;
 // app.routes.ts
 {
   path: 'auth',
-  loadChildren: () => import('./features/auth/auth.routes')   // public
+  loadChildren: () => import('./features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
 },
 {
   path: '',
   component: LayoutComponent,
-  canActivate: [authGuard],                                    // protected
+  canActivate: [authGuard],
   children: [
-    { path: '', redirectTo: 'issues', pathMatch: 'full' },
-    { path: 'issues', loadChildren: () => import('./features/issues/issues.routes') },
-    { path: 'projects', loadChildren: () => import('./features/projects/projects.routes') },
-    { path: 'cycles', loadChildren: () => import('./features/cycles/cycles.routes') },
-    { path: 'labels', loadChildren: () => import('./features/labels/labels.routes') },
-  ]
-}
+    { path: '', canActivate: [roleRedirectGuard], children: [] },         // admin → /issues, user → /my-issues
+    { path: 'issues',    loadChildren: () => import('./features/issues/issues.routes').then((m) => m.ISSUE_ROUTES) },
+    { path: 'my-issues', loadComponent: () => import('./features/issues/my-issues/my-issues.component').then((m) => m.MyIssuesComponent) },
+    { path: 'projects',  loadChildren: () => import('./features/projects/projects.routes').then((m) => m.PROJECT_ROUTES) },
+    { path: 'cycles',    loadChildren: () => import('./features/cycles/cycles.routes').then((m) => m.CYCLE_ROUTES) },
+    { path: 'labels',    loadChildren: () => import('./features/labels/labels.routes').then((m) => m.LABEL_ROUTES) },
+    { path: 'settings',  canActivate: [adminGuard], loadChildren: () => import('./features/settings/settings.routes').then((m) => m.SETTINGS_ROUTES) },
+  ],
+},
 ```
 
 ### Route Map
